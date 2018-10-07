@@ -1,7 +1,7 @@
 #include "RoboCar.h"
 
 RoboCar::RoboCar() {
-  
+
 }
 
 void RoboCar::init() {
@@ -11,18 +11,16 @@ void RoboCar::init() {
   pinMode(B_1B, OUTPUT);
   digitalWrite(B_1A, LOW);
   digitalWrite(B_1B, LOW);
-  
+
   pinMode(START_PIN, INPUT);
 
   myServo.attach(SERVO_PIN);
   myServo.write(STRAIGHT);
-  
 
   pinMode(LEFT_LED, OUTPUT);
   pinMode(RIGHT_LED, OUTPUT);
   digitalWrite(RIGHT_LED, LOW);
   digitalWrite(LEFT_LED, LOW);
-  Serial.println("Init");
   delay(1000);
 }
 
@@ -84,17 +82,17 @@ void RoboCar::right(int angle) {
 void RoboCar::toLeft(int angle) {
   int prev = myServo.read();
   int actuator = constrain(prev - angle, -MAX_ANGLE, MAX_ANGLE);
-  myServo.write(actuator);  
+  myServo.write(actuator);
 }
 
 void RoboCar::toRight(int angle) {
   int prev = myServo.read();
   int actuator = constrain(prev + angle, -MAX_ANGLE, MAX_ANGLE);
-  myServo.write(actuator);  
+  myServo.write(actuator);
 }
 
 void RoboCar::strait() {
-  myServo.write(STRAIGHT);  
+  myServo.write(STRAIGHT);
 
 }
 
@@ -103,7 +101,7 @@ void RoboCar::lightR(int state) {
 }
 
 void RoboCar::lightL(int state) {
-  digitalWrite(LEFT_LED, state);  
+  digitalWrite(LEFT_LED, state);
 }
  
 int RoboCar::startStop() {
