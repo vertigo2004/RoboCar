@@ -28,12 +28,12 @@
 // LINE LED SENSOR VALUES
 #define NO_LINE 0
 #define CENTER 6
-#define LEFT1 2
-#define LEFT2 3
-#define LEFT3 1
-#define RIGHT1 4
-#define RIGHT2 12
-#define RIGHT3 8
+#define LEFT1 4
+#define LEFT2 12
+#define LEFT3 8
+#define RIGHT1 2
+#define RIGHT2 3
+#define RIGHT3 1
 #define ALL_LINE 15
 
 class RoboCar 

@@ -103,7 +103,8 @@ void RoboCar::fullStop() {
 }
 
 int RoboCar::readLine(void) {
-  return ~PINB & MASK;
+  int sensors = PINB;
+  return ~sensors & MASK;
 }
 
 void RoboCar::left(int angle) {
@@ -145,10 +146,12 @@ void RoboCar::lightAll(int state) {
 }
 
 int RoboCar::readStart() {
-  return digitalRead(START_PIN);
+  return !digitalRead(START_PIN);
 }
 
 void RoboCar::blinkL(int c, int d) {
+    lightR(LOW);
+    lightL(LOW);
   for (int i = 0; i < c; i++) {
     lightL(HIGH);
     delay(d);
@@ -158,6 +161,8 @@ void RoboCar::blinkL(int c, int d) {
 }
 
 void RoboCar::blinkR(int c, int d) {
+    lightR(LOW);
+    lightL(LOW);
   for (int i = 0; i < c; i++) {
     lightR(HIGH);
     delay(d);
@@ -167,6 +172,8 @@ void RoboCar::blinkR(int c, int d) {
 }
 
 void RoboCar::blinkAll(int c, int d) {
+    lightR(LOW);
+    lightL(LOW);
   for (int i = 0; i < c; i++) {
     lightR(HIGH);
     lightL(HIGH);
