@@ -5,6 +5,13 @@ RoboCar::RoboCar() {
 }
 
 void RoboCar::init() {
+  init(STRAIGHT);
+}
+
+void RoboCar::init(int servoCenter) {
+
+  straight = servoCenter;
+  speed = 0;
   DDRB = 0; // Set pins of Port B (D8-13) to input
 
   pinMode(B_1A, OUTPUT);
@@ -15,7 +22,7 @@ void RoboCar::init() {
   pinMode(START_PIN, INPUT);
 
   myServo.attach(SERVO_PIN);
-  myServo.write(STRAIGHT);
+  myServo.write(straight);
 
   pinMode(LEFT_LED, OUTPUT);
   pinMode(RIGHT_LED, OUTPUT);
@@ -25,57 +32,86 @@ void RoboCar::init() {
 }
 
 void RoboCar::forward(int sp) {
+  direction = 1;
+
+//  digitalWrite(B_1A, LOW);
+//  digitalWrite(B_1B, LOW);
   if (sp < 0) {
     backward(-sp);
     return;
   } else if (sp == 0) {
-      fullStop();
-      return;
+    fullStop();
+    return;
+  } else if (sp >= 100) {
+    digitalWrite(B_1B, LOW);
+    digitalWrite(B_1A, HIGH);
+    speed = 100;
   } else {
-      digitalWrite(B_1B, LOW);
-      digitalWrite(B_1A, HIGH);
-      if (sp < 100) {
-        delay(EPD);
-        analogWrite(B_1A, MIN_SPEED + sp);
-      }
+    int actuator = kickStart(map(sp, 1, 99, MIN_SPEED, 254));
+    digitalWrite( B_1A, HIGH ); // direction = forward
+    analogWrite( B_1B, 255 - actuator ); // PWM Speed
+    speed = sp;
   }
 }
 
+int RoboCar::kickStart(int a) {
+
+  int turnKick = 0;
+  if (speed == 0 && a < KS_LIMIT) {
+    turnKick = abs(90 - myServo.read());
+    if (direction > 0) {
+      digitalWrite( B_1A, HIGH ); // direction = forward
+      analogWrite( B_1B, 255 - KS_SPEED ); // PWM Speed
+    }
+    if (direction < 0) {
+      digitalWrite( B_1A, LOW ); // direction = backward
+      analogWrite( B_1B, KS_SPEED ); // PWM Speed
+    }
+    delay(KS_DELAY);
+  }
+  return a + turnKick;
+}
+
 void RoboCar::backward(int sp) {
+  direction = -1;
+  digitalWrite(B_1A, LOW);
+  digitalWrite(B_1B, LOW);
   if (sp < 0) {
     forward(-sp);
     return;
   } else if (sp == 0) {
       fullStop();
       return;
-  } else {
+  } else if (sp >= 100) {
       digitalWrite(B_1B, HIGH);
       digitalWrite(B_1A, LOW);
-      if (sp < 100) {
-        delay(EPD);
-        analogWrite(B_1B, MIN_SPEED + sp);
-    }
+    speed = 100;
+  } else {
+    int actuator = kickStart(map(sp, 1, 99, MIN_SPEED, 254));
+    digitalWrite( B_1A, LOW ); // direction = backward
+    analogWrite( B_1B, actuator ); // PWM Speed
+    speed = -sp;
   }
 }
 
 void RoboCar::fullStop() {
-  Serial.println("Stop");
+  direction = 0;
+  speed = 0;
   digitalWrite(B_1A, LOW);
   digitalWrite(B_1B, LOW);
   delay(300);
 }
 
 int RoboCar::readLine(void) {
-  Serial.println("Readline");
   return ~PINB & MASK;
 }
 
 void RoboCar::left(int angle) {
-  int actuator = constrain(STRAIGHT - angle, -MAX_ANGLE, MAX_ANGLE);
+  int actuator = constrain(straight - angle, -MAX_ANGLE, MAX_ANGLE);
   myServo.write(actuator);
 }
 void RoboCar::right(int angle) {
-  int actuator = constrain(STRAIGHT + angle, -MAX_ANGLE, MAX_ANGLE);
+  int actuator = constrain(straight + angle, -MAX_ANGLE, MAX_ANGLE);
   myServo.write(actuator);
 }
 
@@ -91,9 +127,8 @@ void RoboCar::toRight(int angle) {
   myServo.write(actuator);
 }
 
-void RoboCar::strait() {
-  myServo.write(STRAIGHT);
-
+void RoboCar::center() {
+  myServo.write(straight);
 }
 
 void RoboCar::lightR(int state) {
@@ -103,8 +138,13 @@ void RoboCar::lightR(int state) {
 void RoboCar::lightL(int state) {
   digitalWrite(LEFT_LED, state);
 }
- 
-int RoboCar::startStop() {
+
+void RoboCar::lightAll(int state) {
+  lightR(state);
+  lightL(state);
+}
+
+int RoboCar::readStart() {
   return digitalRead(START_PIN);
 }
 

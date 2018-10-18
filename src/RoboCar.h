@@ -16,12 +16,14 @@
 // Line sensors are on pins 8-11
 
 // Stearing wheel control (Servo)
-#define STRAIGHT 83
+#define STRAIGHT 90
 #define MAX_ANGLE 115
 #define MIN_ANGLE 75
 
-#define EPD 30 // ENGINE PUSH DELAY
-#define MIN_SPEED 135 // ENGINE MINIMUM SPEED IMPULS
+#define KS_DELAY 50 // KickStart DELAY
+#define KS_LIMIT 100
+#define KS_SPEED 200
+#define MIN_SPEED 70 // ENGINE MINIMUM SPEED PWM IMPULSE
 
 // LINE LED SENSOR VALUES
 #define NO_LINE 0
@@ -32,30 +34,37 @@
 #define RIGHT1 4
 #define RIGHT2 12
 #define RIGHT3 8
+#define ALL_LINE 15
 
 class RoboCar 
 {
   public:
     RoboCar();
+    void init(int center);
     void init();
     void forward(int);
     void backward(int);
     void fullStop(void);
-    int readLine(void);
     void left(int);
     void right(int);
     void toLeft(int);
     void toRight(int);
-    void strait();
+    void center();
     void lightL(int);
     void lightR(int);
+    void lightAll(int);
     void blinkL(int, int);
     void blinkR(int, int);
     void blinkAll(int, int);
-    int startStop();
+    int readStart();
+    int readLine(void);
 
   private:
+     int straight = STRAIGHT;
+     int direction = 0;
+     int speed = 0;
      Servo myServo;
+     int kickStart(int);
 };
 
 #endif
