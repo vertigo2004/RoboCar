@@ -1,188 +1,128 @@
 #include "RoboCar.h"
 
-RoboCar::RoboCar() {
-
-}
+RoboCar::RoboCar() {}
 
 void RoboCar::init() {
-  init(STRAIGHT);
+    init(STRAIGHT);
 }
 
 void RoboCar::init(int servoCenter) {
+    TCCR2B = TCCR2B & B11111000 | B00000111; // set PWM timer2 30.64Hz
+    DDRB = 0;                                // Set pins of Port B (D8-13) as input IR sensor
 
-  straight = servoCenter;
-  speed = 0;
-  DDRB = 0; // Set pins of Port B (D8-13) to input
+    if (servoCenter>=MIN_ANGLE && servoCenter<=MAX_ANGLE) straight=servoCenter; else straight=STRAIGHT;
 
-  pinMode(B_1A, OUTPUT);
-  pinMode(B_1B, OUTPUT);
-  digitalWrite(B_1A, LOW);
-  digitalWrite(B_1B, LOW);
+    pinMode(START_PIN, INPUT);
 
-  pinMode(START_PIN, INPUT);
+    pinMode(B_1A, OUTPUT);
+    pinMode(B_1B, OUTPUT);
+    digitalWrite(B_1A, LOW);
+    digitalWrite(B_1B, LOW);
 
-  myServo.attach(SERVO_PIN);
-  myServo.write(straight);
+    myServo.attach(SERVO_PIN);
+    myServo.write(straight);
 
-  pinMode(LEFT_LED, OUTPUT);
-  pinMode(RIGHT_LED, OUTPUT);
-  digitalWrite(RIGHT_LED, LOW);
-  digitalWrite(LEFT_LED, LOW);
-  delay(1000);
+    pinMode(LEFT_LED, OUTPUT);
+    pinMode(RIGHT_LED, OUTPUT);
+    digitalWrite(RIGHT_LED, LOW);
+    digitalWrite(LEFT_LED, LOW);
+    delay(256);
+}
+
+
+//---------------------------------------------- Motor
+void RoboCar::halt() {
+    digitalWrite(B_1A, LOW);
+    digitalWrite(B_1B, LOW); delay(64);
 }
 
 void RoboCar::forward(int sp) {
-  direction = 1;
 
-//  digitalWrite(B_1A, LOW);
-//  digitalWrite(B_1B, LOW);
-  if (sp < 0) {
-    backward(-sp);
-    return;
-  } else if (sp == 0) {
-    fullStop();
-    return;
-  } else if (sp >= 100) {
-    digitalWrite(B_1B, LOW);
-    digitalWrite(B_1A, HIGH);
-    speed = 100;
-  } else {
-    int actuator = kickStart(map(sp, 1, 99, MIN_SPEED, 254));
-    digitalWrite( B_1A, HIGH ); // direction = forward
-    analogWrite( B_1B, 255 - actuator ); // PWM Speed
-    speed = sp;
-  }
-}
+    digitalWrite(B_1A, LOW);
+    digitalWrite(B_1B, LOW); delay(32);
 
-int RoboCar::kickStart(int a) {
-
-  int turnKick = 0;
-  if (speed == 0 && a < KS_LIMIT) {
-    turnKick = abs(90 - myServo.read());
-    if (direction > 0) {
-      digitalWrite( B_1A, HIGH ); // direction = forward
-      analogWrite( B_1B, 255 - KS_SPEED ); // PWM Speed
+    if (sp>0 && sp<100) {
+        int varPWM=map(sp, 1, 99, 21, 101);
+        digitalWrite(B_1A,LOW);   // direction = forward
+        analogWrite(B_1B,varPWM); // PWM Speed 21-min, 101-max
     }
-    if (direction < 0) {
-      digitalWrite( B_1A, LOW ); // direction = backward
-      analogWrite( B_1B, KS_SPEED ); // PWM Speed
-    }
-    delay(KS_DELAY);
-  }
-  return a + turnKick;
 }
 
 void RoboCar::backward(int sp) {
-  direction = -1;
-  digitalWrite(B_1A, LOW);
-  digitalWrite(B_1B, LOW);
-  if (sp < 0) {
-    forward(-sp);
-    return;
-  } else if (sp == 0) {
-      fullStop();
-      return;
-  } else if (sp >= 100) {
-      digitalWrite(B_1B, HIGH);
-      digitalWrite(B_1A, LOW);
-    speed = 100;
-  } else {
-    int actuator = kickStart(map(sp, 1, 99, MIN_SPEED, 254));
-    digitalWrite( B_1A, LOW ); // direction = backward
-    analogWrite( B_1B, actuator ); // PWM Speed
-    speed = -sp;
-  }
+
+    digitalWrite(B_1A, LOW);
+    digitalWrite(B_1B, LOW); 
+    delay(32);
+
+    if (sp>0 && sp<100) {
+        int varPWM=-map(sp, 1, 99, -232, -192);
+
+        digitalWrite(B_1A,HIGH);  // direction = backward
+        analogWrite(B_1B,varPWM); // PWM Speed  232-min, 192-max
+      }
 }
 
-void RoboCar::fullStop() {
-  direction = 0;
-  speed = 0;
-  digitalWrite(B_1A, LOW);
-  digitalWrite(B_1B, LOW);
-  delay(300);
-}
-
-int RoboCar::readLine(void) {
-  int sensors = PINB;
-  return ~sensors & MASK;
+//---------------------------------------------- Servo
+void RoboCar::center() {
+    myServo.write(straight);
 }
 
 void RoboCar::left(int angle) {
-  int actuator = constrain(straight - angle, -MAX_ANGLE, MAX_ANGLE);
-  myServo.write(actuator);
+    int actuator = constrain(straight-angle, straight-TURN_ANGLE, straight+TURN_ANGLE);
+    myServo.write(actuator); 
 }
+
 void RoboCar::right(int angle) {
-  int actuator = constrain(straight + angle, -MAX_ANGLE, MAX_ANGLE);
-  myServo.write(actuator);
+    int actuator = constrain(straight+angle, straight-TURN_ANGLE, straight+TURN_ANGLE);
+    myServo.write(actuator); 
 }
 
-void RoboCar::toLeft(int angle) {
-  int prev = myServo.read();
-  int actuator = constrain(prev - angle, -MAX_ANGLE, MAX_ANGLE);
-  myServo.write(actuator);
-}
-
-void RoboCar::toRight(int angle) {
-  int prev = myServo.read();
-  int actuator = constrain(prev + angle, -MAX_ANGLE, MAX_ANGLE);
-  myServo.write(actuator);
-}
-
-void RoboCar::center() {
-  myServo.write(straight);
-}
-
+//---------------------------------------------- Light
 void RoboCar::lightR(int state) {
-  digitalWrite(RIGHT_LED, state);
+    digitalWrite(RIGHT_LED, state);
 }
 
 void RoboCar::lightL(int state) {
-  digitalWrite(LEFT_LED, state);
+    digitalWrite(LEFT_LED, state);
 }
 
 void RoboCar::lightAll(int state) {
-  lightR(state);
-  lightL(state);
-}
-
-int RoboCar::readStart() {
-  return !digitalRead(START_PIN);
+    lightR(state);
+    lightL(state);
 }
 
 void RoboCar::blinkL(int c, int d) {
-    lightR(LOW);
-    lightL(LOW);
-  for (int i = 0; i < c; i++) {
-    lightL(HIGH);
-    delay(d);
-    lightL(LOW);
-    delay(d);
-  }
+    lightR(LOW); lightL(LOW);
+    for(int i = 0; i < c; i++) {
+        lightL(HIGH); delay(d);
+        lightL(LOW);  delay(d);
+    }
 }
 
 void RoboCar::blinkR(int c, int d) {
     lightR(LOW);
     lightL(LOW);
-  for (int i = 0; i < c; i++) {
-    lightR(HIGH);
-    delay(d);
-    lightR(LOW);
-    delay(d);
-  }
+    for(int i = 0; i < c; i++) {
+         lightR(HIGH); delay(d);
+         lightR(LOW);  delay(d);
+    }
 }
 
 void RoboCar::blinkAll(int c, int d) {
     lightR(LOW);
     lightL(LOW);
-  for (int i = 0; i < c; i++) {
-    lightR(HIGH);
-    lightL(HIGH);
-    delay(d);
-    lightR(LOW);
-    lightL(LOW);
-    delay(d);
-  }
+    for(int i = 0; i < c; i++) {
+         lightR(HIGH); lightL(HIGH); delay(d);
+         lightR(LOW);  lightL(LOW);  delay(d);
+    }
 }
 
+//---------------------------------------------- Read sensors
+int RoboCar::readStart(void) {
+    return !digitalRead(START_PIN);
+}
 
-
+int RoboCar::readLine(void) {
+    int sensors = PINB;
+    return sensors & MASK;
+}
