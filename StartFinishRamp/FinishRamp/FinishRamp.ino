@@ -1,24 +1,19 @@
-/*   Данный скетч делает следующее: передатчик (TX) отправляет массив
- *   данных, который генерируется согласно показаниям с кнопки и с 
- *   двух потенциомтеров. Приёмник (RX) получает массив, и записывает
- *   данные на реле, сервомашинку и генерирует ШИМ сигнал на транзистор.
-    by AlexGyver 2016
+/*   
 */
 
 #include <SPI.h>          // библиотека для работы с шиной SPI
 #include "nRF24L01.h"     // библиотека радиомодуля
 #include "RF24.h"         // ещё библиотека радиомодуля
 
-#define BUTTON_PIN  7
+#define BUTTON_PIN   7
 #define FINISH_PIN1  6
 #define FINISH_PIN2  5
 
 
-#define SERIAL_START 1
-#define SERIAL_RESET 2
-#define SERIAL_STOP1 3
-#define SERIAL_STOP2 4
-
+#define SERIAL_START '1'
+#define SERIAL_RESET '2'
+#define SERIAL_STOP1 '3'
+#define SERIAL_STOP2 '4'
 
 
 RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Для Уно
@@ -30,12 +25,8 @@ byte PAYLOAD = 84;
 typedef enum { STANDBY, CLOCK } mode_e;
 mode_e mode = STANDBY;
 
-long startTime;
-long trackTime1 = 0;
-long trackTime2 = 0;
-
-int track1 = 0;
-int track2 = 0;
+int isFinished1 = false;
+int isFinished2 = false;
 
 void setup() {
   Serial.begin(9600); //открываем порт для связи с ПК
@@ -60,44 +51,31 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(FINISH_PIN1, INPUT);
   pinMode(FINISH_PIN2, INPUT);
-
-  Serial.println("READY TO RACE!");
+  
 }
 
 void loop() {
-  if (mode == STANDBY && !digitalRead(BUTTON_PIN)) {
+
+  
+  if (mode == STANDBY && Serial.available() && Serial.read() == SERIAL_START) {
       radio.write(&PAYLOAD, sizeof(PAYLOAD));
-      startTime = millis();
       mode = CLOCK;
-      Serial.println("START!");
-      delay(1000);
   }
+  
   if (mode == CLOCK) {
-    if (!track1 && digitalRead(FINISH_PIN1)) {
-      trackTime1 = millis() - startTime;
-      track1 = 1;
-      Serial.print("First Track Time:");
-      Serial.println(trackTime1 / 1000.);
+    if (!isFinished1 && digitalRead(FINISH_PIN1)) {
+      isFinished1 = true;
+      Serial.print(SERIAL_STOP1);
     }
-    if (!track2 && digitalRead(FINISH_PIN2)) {
-      track2 = 1;
-      trackTime2 = millis() - startTime;
-      Serial.print("Second Track Time:");
-      Serial.println(trackTime2 / 1000.);
+    if (!isFinished2 && digitalRead(FINISH_PIN2)) {
+      isFinished2 = true;
+      Serial.print(SERIAL_STOP2);
     }
-    if (track1 && track2) {
+    
+    if (isFinished1 && isFinished2 || Serial.available() && Serial.read() == SERIAL_RESET) {
       mode = STANDBY;
-      track1 = 0;
-      track2 = 0;
-      Serial.print("Race is OVER!");
-      Serial.print("The winner is Track #");
-      if (trackTime1 < trackTime2) {
-        Serial.println("ONE!");
-      } else {
-        Serial.println("TWO!");
-      }
-      Serial.println("\r\n");
-      Serial.println("READY TO RACE!");
+      isFinished1 = false;
+      isFinished2 = false;
     }
   }
 
